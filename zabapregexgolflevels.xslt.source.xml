@@ -1,0 +1,35 @@
+<xsl:transform xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:sap="http://www.sap.com/sapxsl" version="1.0">
+
+  <xsl:strip-space elements="*"/>
+
+  <xsl:template match="levels">
+    <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+      <asx:values>
+        <LEVELS>
+          <xsl:for-each select="level">
+            <LEVEL>
+              <ID>
+                <xsl:value-of select="id"/>
+              </ID>
+              <MATCHES>
+                <xsl:for-each select="matches/item">
+                  <item>
+                    <xsl:value-of select="."/>
+                  </item>
+                </xsl:for-each>
+              </MATCHES>
+              <NON_MATCHES>
+                <xsl:for-each select="non_matches/item">
+                  <item>
+                    <xsl:value-of select="."/>
+                  </item>
+                </xsl:for-each>
+              </NON_MATCHES>
+            </LEVEL>
+          </xsl:for-each>
+        </LEVELS>
+      </asx:values>
+    </asx:abap>
+  </xsl:template>
+
+</xsl:transform>
