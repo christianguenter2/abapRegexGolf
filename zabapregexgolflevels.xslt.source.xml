@@ -11,6 +11,9 @@
               <ID>
                 <xsl:value-of select="id"/>
               </ID>
+              <DESCRIPTION>
+                <xsl:value-of select="description"/>
+              </DESCRIPTION>
               <MATCHES>
                 <xsl:for-each select="matches/item">
                   <item>

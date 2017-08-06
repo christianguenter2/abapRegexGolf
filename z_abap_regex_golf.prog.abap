@@ -31,7 +31,7 @@ CLASS cx_error DEFINITION INHERITING FROM cx_static_check.
 
   PRIVATE SECTION.
 
-    DATA: _text TYPE string.
+    DATA: m_text TYPE string.
 
 ENDCLASS.
 
@@ -61,13 +61,13 @@ CLASS cx_error IMPLEMENTATION.
       IMPORTING
         message    = message.
 
-    _text = message.
+    m_text = message.
 
   ENDMETHOD.
 
   METHOD get_text.
 
-    result = COND #( WHEN _text IS NOT INITIAL THEN _text
+    result = COND #( WHEN m_text IS NOT INITIAL THEN m_text
                      ELSE super->get_text( ) ).
 
   ENDMETHOD.
@@ -221,6 +221,17 @@ CLASS level DEFINITION CREATE PUBLIC.
 
   PUBLIC SECTION.
 
+    TYPES: BEGIN OF ty_level,
+             id          TYPE i,
+             description TYPE string,
+             matches     TYPE stringtab,
+             non_matches TYPE stringtab,
+           END OF ty_level,
+           tty_level TYPE HASHED TABLE OF ty_level
+                     WITH UNIQUE KEY id.
+
+    DATA: mt_levels TYPE tty_level READ-ONLY.
+
     METHODS:
 
       constructor
@@ -252,8 +263,9 @@ CLASS level DEFINITION CREATE PUBLIC.
 
       add_level
         IMPORTING
-          i_matches             TYPE string
-          i_non_matches         TYPE string
+          i_description         TYPE csequence
+          i_matches             TYPE csequence
+          i_non_matches         TYPE csequence
         RETURNING
           VALUE(r_new_level_id) TYPE i
         RAISING
@@ -267,24 +279,11 @@ CLASS level DEFINITION CREATE PUBLIC.
 
   PRIVATE SECTION.
 
-    TYPES:
-
-      BEGIN OF ty_level,
-        id          TYPE i,
-        matches     TYPE stringtab,
-        non_matches TYPE stringtab,
-      END OF ty_level,
-
-      tty_level TYPE HASHED TABLE OF ty_level
-                WITH UNIQUE KEY id.
-
     CONSTANTS: co_level_xml_file TYPE string VALUE `/SAP/PUBLIC/levels.xml` ##NO_TEXT.
 
     DATA:
-
-      _levels              TYPE tty_level,
-      _current_level       LIKE LINE OF _levels,
-      _mime_repository_api TYPE REF TO if_mr_api.
+      m_current_level       LIKE LINE OF mt_levels,
+      m_mime_repository_api TYPE REF TO if_mr_api.
 
     METHODS:
 
@@ -308,9 +307,9 @@ CLASS level IMPLEMENTATION.
 
   METHOD constructor.
 
-    _mime_repository_api = cl_mime_repository_api=>get_api( ).
+    m_mime_repository_api = cl_mime_repository_api=>get_api( ).
 
-    _levels = _load_levels( ).
+    mt_levels = _load_levels( ).
 
     DATA(level_id) = COND #( WHEN i_level IS SUPPLIED THEN i_level
                              ELSE _get_random_level_id( ) ).
@@ -323,14 +322,14 @@ CLASS level IMPLEMENTATION.
 
     DATA(random) = cl_abap_random_int=>create( seed = CONV #( sy-uzeit )
                                                min  = 1
-                                               max  = lines( _levels  ) ).
+                                               max  = lines( mt_levels  ) ).
 
     DO.
 
       r_random_level_id = random->get_next( ).
 
-      IF r_random_level_id <> _current_level-id
-         OR lines( _levels ) <= 1.
+      IF r_random_level_id <> m_current_level-id
+         OR lines( mt_levels ) <= 1.
 
         EXIT.
 
@@ -342,49 +341,49 @@ CLASS level IMPLEMENTATION.
 
   METHOD get_matches.
 
-    rt_matches = _current_level-matches.
+    rt_matches = m_current_level-matches.
 
   ENDMETHOD.
 
   METHOD get_non_matches.
 
-    rt_non_matches = _current_level-non_matches.
+    rt_non_matches = m_current_level-non_matches.
 
   ENDMETHOD.
 
   METHOD get_current_level.
 
-    r_current_level = _current_level-id.
+    r_current_level = m_current_level-id.
 
   ENDMETHOD.
 
   METHOD random_level.
 
-    _current_level = _levels[ id = _get_random_level_id( ) ].
+    m_current_level = mt_levels[ id = _get_random_level_id( ) ].
 
   ENDMETHOD.
 
   METHOD set_level.
 
-    IF NOT line_exists( _levels[ id = i_new_level_id ] ).
+    IF NOT line_exists( mt_levels[ id = i_new_level_id ] ).
 
       RAISE EXCEPTION TYPE cx_invalid_level_id.
 
     ENDIF.
 
-    _current_level = _levels[ id = i_new_level_id ].
+    m_current_level = mt_levels[ id = i_new_level_id ].
 
   ENDMETHOD.
 
   METHOD get_level_count.
 
-    r_count = lines( _levels ).
+    r_count = lines( mt_levels ).
 
   ENDMETHOD.
 
   METHOD _load_levels.
 
-    _mime_repository_api->get(
+    m_mime_repository_api->get(
       EXPORTING
         i_url                  = co_level_xml_file    " Object URL
         i_check_authority      = ' '    " X Check Authorization, '' No Authorization Check
@@ -412,10 +411,10 @@ CLASS level IMPLEMENTATION.
       i_matches     AT space INTO TABLE DATA(lt_matches),
       i_non_matches AT space INTO TABLE DATA(lt_non_matches).
 
-    INSERT VALUE ty_level( id          = lines( _levels ) + 1
+    INSERT VALUE ty_level( id          = lines( mt_levels ) + 1
                            matches     = lt_matches
                            non_matches = lt_non_matches )
-           INTO TABLE _levels ASSIGNING FIELD-SYMBOL(<new_level>).
+           INTO TABLE mt_levels ASSIGNING FIELD-SYMBOL(<new_level>).
 
     IF sy-subrc <> 0.
 
@@ -431,10 +430,10 @@ CLASS level IMPLEMENTATION.
 
   METHOD _save_levels.
 
-    CALL TRANSFORMATION id SOURCE levels = _levels
+    CALL TRANSFORMATION id SOURCE levels = mt_levels
                            RESULT XML DATA(content).
 
-    _mime_repository_api->put(
+    m_mime_repository_api->put(
       EXPORTING
         i_url     = co_level_xml_file    " Object URL
         i_content = content    " Object Contents (if exists -> overwrite contents)
@@ -455,7 +454,7 @@ CLASS level IMPLEMENTATION.
 
     CHECK i_level_id IS NOT INITIAL.
 
-    DELETE _levels WHERE id = i_level_id.
+    DELETE mt_levels WHERE id = i_level_id.
 
     IF sy-subrc <> 0.
 
@@ -510,10 +509,10 @@ CLASS controller DEFINITION FINAL.
   PRIVATE SECTION.
 
     DATA:
-      _validator            TYPE REF TO validator,
-      _level                TYPE REF TO level,
-      _t_result_matches     TYPE validator=>tty_result,
-      _t_result_non_matches TYPE validator=>tty_result.
+      mo_validator          TYPE REF TO validator,
+      mo_level              TYPE REF TO level,
+      mt_result_matches     TYPE validator=>tty_result,
+      mt_result_non_matches TYPE validator=>tty_result.
 
     METHODS:
 
@@ -554,7 +553,7 @@ CLASS controller IMPLEMENTATION.
 
   METHOD constructor.
 
-    _level = NEW level( ).
+    mo_level = NEW level( ).
 
     _initialize( ).
 
@@ -562,14 +561,14 @@ CLASS controller IMPLEMENTATION.
 
   METHOD get_match_html.
 
-    rt_html = _get_html( it_result = _t_result_matches
+    rt_html = _get_html( it_result = mt_result_matches
                          i_match   = abap_true ).
 
   ENDMETHOD.
 
   METHOD get_non_match_html.
 
-    rt_html = _get_html( it_result = _t_result_non_matches
+    rt_html = _get_html( it_result = mt_result_non_matches
                          i_match   = abap_false ).
 
   ENDMETHOD.
@@ -615,7 +614,7 @@ CLASS controller IMPLEMENTATION.
 
   METHOD _validate.
 
-    _validator->validate(
+    mo_validator->validate(
       EXPORTING
         i_regex   = i_regex
         it_tokens = it_tokens
@@ -654,13 +653,13 @@ CLASS controller IMPLEMENTATION.
 
   METHOD get_current_level.
 
-    r_current_level = _level->get_current_level( ).
+    r_current_level = mo_level->get_current_level( ).
 
   ENDMETHOD.
 
   METHOD random_level.
 
-    _level->random_level( ).
+    mo_level->random_level( ).
 
     _initialize( ).
 
@@ -668,11 +667,20 @@ CLASS controller IMPLEMENTATION.
 
   METHOD pick_level.
 
-    DATA: new_level_id TYPE i.
+    DATA: new_level_id TYPE i,
+          level_count  TYPE i.
+
+    LOOP AT mo_level->mt_levels ASSIGNING FIELD-SYMBOL(<level>).
+
+      level_count = level_count + 1.
+
+      cl_demo_input=>add_text( |{ level_count } { <level>-description } | ).
+
+    ENDLOOP.
 
     cl_demo_input=>request(
       EXPORTING
-        text        = |Choose Level 1 - { _level->get_level_count( ) }|
+        text        = |Choose Level 1 - { mo_level->get_level_count( ) }|
       CHANGING
         field       = new_level_id ).
 
@@ -684,7 +692,7 @@ CLASS controller IMPLEMENTATION.
 
     TRY.
 
-        _level->set_level( new_level_id ).
+        mo_level->set_level( new_level_id ).
 
         _initialize( ).
 
@@ -699,9 +707,14 @@ CLASS controller IMPLEMENTATION.
   METHOD add_level.
 
     DATA: matches     TYPE string,
-          non_matches TYPE string.
+          non_matches TYPE string,
+          description TYPE string.
 
     cl_demo_input=>new(
+                )->add_field( EXPORTING
+                                text  = 'Description'
+                              CHANGING
+                                field = description
                 )->add_field( EXPORTING
                                 text  = 'Matches (separated by whitespaces)'
                               CHANGING
@@ -714,7 +727,8 @@ CLASS controller IMPLEMENTATION.
 
     TRY.
 
-        DATA(new_level_id) = _level->add_level( i_matches     = matches
+        DATA(new_level_id) = mo_level->add_level( i_description = description
+                                                i_matches     = matches
                                                 i_non_matches = non_matches ).
 
       CATCH cx_error INTO DATA(error).
@@ -756,30 +770,30 @@ CLASS controller IMPLEMENTATION.
 
   METHOD validate.
 
-    _t_result_matches = _validate( i_regex   = i_regex
-                                   it_tokens = _level->get_matches( ) ).
+    mt_result_matches = _validate( i_regex   = i_regex
+                                   it_tokens = mo_level->get_matches( ) ).
 
-    _t_result_non_matches = _validate( i_regex   = i_regex
-                                       it_tokens = _level->get_non_matches( ) ).
+    mt_result_non_matches = _validate( i_regex   = i_regex
+                                       it_tokens = mo_level->get_non_matches( ) ).
 
   ENDMETHOD.
 
   METHOD _level_solved.
 
-    DATA(success_matches) = FILTER validator=>tty_result( _t_result_matches USING KEY matched_key
+    DATA(success_matches) = FILTER validator=>tty_result( mt_result_matches USING KEY matched_key
                                                                                 WHERE matched = abap_true ).
 
-    DATA(success_non_matches) = FILTER validator=>tty_result( _t_result_non_matches USING KEY matched_key
+    DATA(success_non_matches) = FILTER validator=>tty_result( mt_result_non_matches USING KEY matched_key
                                                                                     WHERE matched = abap_true ).
 
-    r_level_solved = boolc( lines( success_matches ) = lines(  _t_result_matches )
+    r_level_solved = boolc( lines( success_matches ) = lines(  mt_result_matches )
                         AND lines( success_non_matches ) = 0 ).
 
   ENDMETHOD.
 
   METHOD _initialize.
 
-    _validator = NEW validator( ).
+    mo_validator = NEW validator( ).
 
     validate( regex_input ).
 
@@ -791,13 +805,13 @@ CLASS controller IMPLEMENTATION.
 
     cl_demo_input=>request(
       EXPORTING
-        text        = |Level to Delete 1 - { _level->get_level_count( ) }|
+        text        = |Level to Delete 1 - { mo_level->get_level_count( ) }|
       CHANGING
         field       = level_to_delete ).
 
     TRY.
 
-        _level->delete_level( level_to_delete ).
+        mo_level->delete_level( level_to_delete ).
 
       CATCH cx_error INTO DATA(error).
 
@@ -806,7 +820,7 @@ CLASS controller IMPLEMENTATION.
 
     ENDTRY.
 
-    _level->random_level( ).
+    mo_level->random_level( ).
 
     MESSAGE |Level { level_to_delete } deleted| TYPE 'S'.
 
@@ -836,11 +850,11 @@ CLASS view DEFINITION FINAL CREATE PRIVATE.
 
     CLASS-DATA:
 
-      _instance TYPE REF TO view.
+      mo_instance TYPE REF TO view.
 
     DATA:
 
-      _controller TYPE REF TO controller,
+      mo_controller TYPE REF TO controller,
 
       BEGIN OF _custom_container,
         top   TYPE REF TO cl_gui_custom_container,
@@ -914,7 +928,7 @@ CLASS view IMPLEMENTATION.
     first_time = abap_true.
 
     TRY.
-        _controller = NEW controller( ).
+        mo_controller = NEW controller( ).
 
       CATCH cx_error INTO DATA(error).
 
@@ -950,14 +964,14 @@ CLASS view IMPLEMENTATION.
 
   METHOD get.
 
-    r_instance = _instance = COND #( WHEN _instance IS BOUND THEN _instance
+    r_instance = mo_instance = COND #( WHEN mo_instance IS BOUND THEN mo_instance
                                      ELSE NEW view( ) ).
 
   ENDMETHOD.
 
   METHOD pbo.
 
-    DATA(current_level) = |{ _controller->get_current_level( ) }|.
+    DATA(current_level) = |{ mo_controller->get_current_level( ) }|.
 
     SET:
       PF-STATUS 'MAIN_0100',
@@ -999,7 +1013,7 @@ CLASS view IMPLEMENTATION.
     _control_processing(
       EXPORTING
         i_container_name = co_custom_control_name-left
-        it_html          = _controller->get_match_html( )
+        it_html          = mo_controller->get_match_html( )
       CHANGING
         co_container = _custom_container-left
         co_control   = _custom_control-left ).
@@ -1043,7 +1057,7 @@ CLASS view IMPLEMENTATION.
     _control_processing(
       EXPORTING
         i_container_name = co_custom_control_name-right
-        it_html          = _controller->get_non_match_html( )
+        it_html          = mo_controller->get_non_match_html( )
       CHANGING
         co_container = _custom_container-right
         co_control   = _custom_control-right ).
@@ -1055,7 +1069,7 @@ CLASS view IMPLEMENTATION.
     _control_processing(
       EXPORTING
         i_container_name = co_custom_control_name-top
-        it_html          = _controller->get_top_html( )
+        it_html          = mo_controller->get_top_html( )
       CHANGING
         co_container = _custom_container-top
         co_control   = _custom_control-top ).
@@ -1080,23 +1094,23 @@ CLASS view IMPLEMENTATION.
 
       WHEN co_ok_code-enter.
 
-        _controller->validate( regex_input ).
+        mo_controller->validate( regex_input ).
 
       WHEN co_ok_code-pick.
 
-        _controller->pick_level( ).
+        mo_controller->pick_level( ).
 
       WHEN co_ok_code-rand.
 
-        _controller->random_level( ).
+        mo_controller->random_level( ).
 
       WHEN co_ok_code-add.
 
-        _controller->add_level( ).
+        mo_controller->add_level( ).
 
       WHEN co_ok_code-delete.
 
-        _controller->delete_level( ).
+        mo_controller->delete_level( ).
 
     ENDCASE.
 
@@ -1112,7 +1126,7 @@ CLASS view IMPLEMENTATION.
                                             len = len - 1 ) ).
 
     TRY.
-        _controller->validate( message ).
+        mo_controller->validate( message ).
         _paint_controls( ).
 
       CATCH cx_error INTO DATA(error).
