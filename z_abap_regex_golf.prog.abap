@@ -412,6 +412,7 @@ CLASS level IMPLEMENTATION.
       i_non_matches AT space INTO TABLE DATA(lt_non_matches).
 
     INSERT VALUE ty_level( id          = lines( mt_levels ) + 1
+                           description = i_description
                            matches     = lt_matches
                            non_matches = lt_non_matches )
            INTO TABLE mt_levels ASSIGNING FIELD-SYMBOL(<new_level>).
