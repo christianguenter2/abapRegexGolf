@@ -304,8 +304,8 @@ CLASS level DEFINITION CREATE PUBLIC.
              matches     TYPE stringtab,
              non_matches TYPE stringtab,
            END OF ty_level,
-           tty_level TYPE HASHED TABLE OF ty_level
-                     WITH UNIQUE KEY id.
+           tty_level TYPE STANDARD TABLE OF ty_level
+                     WITH NON-UNIQUE DEFAULT KEY.
 
     DATA: mt_levels TYPE tty_level READ-ONLY.
 
@@ -438,7 +438,7 @@ CLASS level IMPLEMENTATION.
 
   METHOD random_level.
 
-    m_current_level = mt_levels[ id = _get_random_level_id( ) ].
+    m_current_level = mt_levels[ _get_random_level_id( ) ].
 
   ENDMETHOD.
 
@@ -446,13 +446,13 @@ CLASS level IMPLEMENTATION.
 
     CHECK i_new_level_id IS NOT INITIAL.
 
-    IF NOT line_exists( mt_levels[ id = i_new_level_id ] ).
+    IF NOT line_exists( mt_levels[ i_new_level_id ] ).
 
       RAISE EXCEPTION TYPE cx_invalid_level_id.
 
     ENDIF.
 
-    m_current_level = mt_levels[ id = i_new_level_id ].
+    m_current_level = mt_levels[ i_new_level_id ].
 
   ENDMETHOD.
 
@@ -538,7 +538,7 @@ CLASS level IMPLEMENTATION.
 
     CHECK i_level_id IS NOT INITIAL.
 
-    DELETE mt_levels WHERE id = i_level_id.
+    DELETE mt_levels INDEX i_level_id.
 
     IF sy-subrc <> 0.
 
@@ -663,14 +663,14 @@ CLASS null_controller DEFINITION CREATE PUBLIC
 
   PUBLIC SECTION.
     METHODS:
-      lif_controller~delete_level 			REDEFINITION,
-      lif_controller~get_current_level	REDEFINITION,
-      lif_controller~get_match_html 		REDEFINITION,
+      lif_controller~delete_level       REDEFINITION,
+      lif_controller~get_current_level  REDEFINITION,
+      lif_controller~get_match_html     REDEFINITION,
       lif_controller~get_non_match_html REDEFINITION,
-      lif_controller~get_top_html 			REDEFINITION,
-      lif_controller~pick_level 				REDEFINITION,
-      lif_controller~random_level 			REDEFINITION,
-      lif_controller~validate 					REDEFINITION.
+      lif_controller~get_top_html       REDEFINITION,
+      lif_controller~pick_level         REDEFINITION,
+      lif_controller~random_level       REDEFINITION,
+      lif_controller~validate           REDEFINITION.
 
 ENDCLASS.
 

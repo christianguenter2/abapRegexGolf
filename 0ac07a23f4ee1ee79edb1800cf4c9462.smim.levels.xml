@@ -62,36 +62,6 @@
      <item>unfold</item>
     </NON_MATCHES>
    </item>
-   <item>
-    <ID>3</ID>
-    <DESCRIPTION/>
-    <MATCHES>
-     <item>aabbcc</item>
-    </MATCHES>
-    <NON_MATCHES>
-     <item>aaabbbccc</item>
-    </NON_MATCHES>
-   </item>
-   <item>
-    <ID>4</ID>
-    <DESCRIPTION>Test new level with description</DESCRIPTION>
-    <MATCHES>
-     <item>Test</item>
-    </MATCHES>
-    <NON_MATCHES>
-     <item>test</item>
-    </NON_MATCHES>
-   </item>
-   <item>
-    <ID>5</ID>
-    <DESCRIPTION>Test</DESCRIPTION>
-    <MATCHES>
-     <item>Test</item>
-    </MATCHES>
-    <NON_MATCHES>
-     <item>Test</item>
-    </NON_MATCHES>
-   </item>
   </LEVELS>
  </asx:values>
 </asx:abap>
