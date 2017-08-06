@@ -7,6 +7,7 @@
 *&---------------------------------------------------------------------*
 REPORT z_abap_regex_golf.
 
+
 DATA: ok_code     TYPE sy-ucomm,
       regex_input TYPE c LENGTH 60.
 
@@ -114,6 +115,82 @@ CLASS cx_invalid_level_id IMPLEMENTATION.
   METHOD get_text.
 
     result = |Invalid Level ID|.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS cx_no_levels DEFINITION INHERITING FROM cx_error FINAL.
+
+  PUBLIC SECTION.
+
+    METHODS: get_text REDEFINITION.
+
+ENDCLASS.
+
+CLASS cx_no_levels IMPLEMENTATION.
+
+  METHOD get_text.
+
+    result = |Keine Levels gefunden|.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS lcl_xml DEFINITION CREATE PUBLIC.
+
+  PUBLIC SECTION.
+    METHODS:
+      constructor,
+      pretty_print
+        IMPORTING
+          i_xml        TYPE xstring
+        RETURNING
+          VALUE(r_xml) TYPE xstring.
+
+  PRIVATE SECTION.
+    DATA: mi_ixml    TYPE REF TO if_ixml,
+          mi_xml_doc TYPE REF TO if_ixml_document.
+
+ENDCLASS.
+
+CLASS lcl_xml IMPLEMENTATION.
+
+  METHOD constructor.
+    mi_ixml = cl_ixml=>create( ).
+    mi_xml_doc = mi_ixml->create_document( ).
+  ENDMETHOD.
+
+  METHOD pretty_print.
+
+    DATA: li_ostream        TYPE REF TO if_ixml_ostream,
+          li_renderer       TYPE REF TO if_ixml_renderer,
+          li_istream        TYPE REF TO if_ixml_istream,
+          li_element        TYPE REF TO if_ixml_element,
+          li_version        TYPE REF TO if_ixml_node,
+          li_parser         TYPE REF TO if_ixml_parser,
+          li_stream_factory TYPE REF TO if_ixml_stream_factory.
+
+    li_stream_factory = mi_ixml->create_stream_factory( ).
+
+    li_istream = li_stream_factory->create_istream_xstring( i_xml ).
+
+    li_parser = mi_ixml->create_parser( stream_factory = li_stream_factory
+                                        istream        = li_istream
+                                        document       = mi_xml_doc ).
+    li_parser->set_normalizing( abap_true  ).
+    li_parser->parse( ).
+
+    li_istream->close( ).
+
+    li_ostream = li_stream_factory->create_ostream_xstring( r_xml ).
+
+    li_renderer = mi_ixml->create_renderer( ostream  = li_ostream
+                                            document = mi_xml_doc ).
+    li_renderer->set_normalizing( abap_true  ).
+
+    li_renderer->render( ).
 
   ENDMETHOD.
 
@@ -295,7 +372,8 @@ CLASS level DEFINITION CREATE PUBLIC.
         RETURNING
           VALUE(r_levels) TYPE level=>tty_level
         RAISING
-          cx_invalid_input,
+          cx_invalid_input
+          cx_no_levels,
 
       _save_levels
         RAISING
@@ -312,6 +390,7 @@ CLASS level IMPLEMENTATION.
     mt_levels = _load_levels( ).
 
     DATA(level_id) = COND #( WHEN i_level IS SUPPLIED THEN i_level
+                             WHEN lines( mt_levels ) = 0 THEN 0
                              ELSE _get_random_level_id( ) ).
 
     set_level( level_id ).
@@ -364,6 +443,8 @@ CLASS level IMPLEMENTATION.
   ENDMETHOD.
 
   METHOD set_level.
+
+    CHECK i_new_level_id IS NOT INITIAL.
 
     IF NOT line_exists( mt_levels[ id = i_new_level_id ] ).
 
@@ -434,6 +515,8 @@ CLASS level IMPLEMENTATION.
     CALL TRANSFORMATION id SOURCE levels = mt_levels
                            RESULT XML DATA(content).
 
+    content = NEW lcl_xml( )->pretty_print( content ).
+
     m_mime_repository_api->put(
       EXPORTING
         i_url     = co_level_xml_file    " Object URL
@@ -469,49 +552,199 @@ CLASS level IMPLEMENTATION.
 
 ENDCLASS.
 
-CLASS controller DEFINITION FINAL.
+INTERFACE lif_controller.
+  METHODS:
+    get_match_html
+      RETURNING VALUE(rt_html) TYPE w3htmltab,
+
+    get_non_match_html
+      RETURNING VALUE(rt_html) TYPE w3htmltab,
+
+    get_current_level
+      RETURNING
+        VALUE(r_current_level) TYPE i,
+
+    random_level
+      RAISING
+        cx_error,
+
+    pick_level,
+
+    add_level,
+
+    get_top_html
+      RETURNING VALUE(rt_html) TYPE w3htmltab,
+
+    validate
+      IMPORTING
+        i_regex TYPE csequence
+      RAISING
+        cx_error,
+
+    delete_level.
+
+ENDINTERFACE.
+
+CLASS abstract_controller DEFINITION CREATE PUBLIC
+                          ABSTRACT.
 
   PUBLIC SECTION.
+    INTERFACES:
+      lif_controller
+      ABSTRACT METHODS
+      delete_level
+      get_current_level
+      get_match_html
+      get_non_match_html
+      get_top_html
+      pick_level
+      random_level
+      validate.
 
     METHODS:
       constructor
         RAISING
-          cx_error,
+          cx_error.
 
-      get_match_html
-        RETURNING VALUE(rt_html) TYPE w3htmltab,
+  PROTECTED SECTION.
+    DATA: mo_level              TYPE REF TO level.
 
-      get_non_match_html
-        RETURNING VALUE(rt_html) TYPE w3htmltab,
+ENDCLASS.
 
-      get_current_level
-        RETURNING
-          VALUE(r_current_level) TYPE i,
+CLASS abstract_controller IMPLEMENTATION.
 
-      random_level
+  METHOD constructor.
+
+    mo_level = NEW level( ).
+
+  ENDMETHOD.
+
+  METHOD lif_controller~add_level.
+
+    DATA: matches     TYPE string,
+          non_matches TYPE string,
+          description TYPE string.
+
+    cl_demo_input=>new(
+                )->add_field( EXPORTING
+                                text  = 'Description'
+                              CHANGING
+                                field = description
+                )->add_field( EXPORTING
+                                text  = 'Matches (separated by whitespaces)'
+                              CHANGING
+                                field = matches
+                )->add_field( EXPORTING
+                                text = 'Non-Matches (separated by whitespaces)'
+                              CHANGING
+                                field = non_matches
+                )->request( ) ##NO_TEXT.
+
+    TRY.
+
+        DATA(new_level_id) = mo_level->add_level( i_description = description
+                                                i_matches     = matches
+                                                i_non_matches = non_matches ).
+
+      CATCH cx_error INTO DATA(error).
+
+        MESSAGE error TYPE 'S' DISPLAY LIKE 'E'.
+        RETURN.
+
+    ENDTRY.
+
+    MESSAGE |Level { new_level_id } created| TYPE 'S'.
+
+  ENDMETHOD.
+ENDCLASS.
+
+CLASS null_controller DEFINITION CREATE PUBLIC
+                      INHERITING FROM abstract_controller.
+
+  PUBLIC SECTION.
+    METHODS:
+      lif_controller~delete_level 			REDEFINITION,
+      lif_controller~get_current_level	REDEFINITION,
+      lif_controller~get_match_html 		REDEFINITION,
+      lif_controller~get_non_match_html REDEFINITION,
+      lif_controller~get_top_html 			REDEFINITION,
+      lif_controller~pick_level 				REDEFINITION,
+      lif_controller~random_level 			REDEFINITION,
+      lif_controller~validate 					REDEFINITION.
+
+ENDCLASS.
+
+CLASS null_controller IMPLEMENTATION.
+
+  METHOD lif_controller~delete_level.
+
+  ENDMETHOD.
+
+  METHOD lif_controller~get_current_level.
+
+  ENDMETHOD.
+
+  METHOD lif_controller~get_match_html.
+
+  ENDMETHOD.
+
+  METHOD lif_controller~get_non_match_html.
+
+  ENDMETHOD.
+
+  METHOD lif_controller~get_top_html.
+
+  ENDMETHOD.
+
+  METHOD lif_controller~pick_level.
+
+  ENDMETHOD.
+
+  METHOD lif_controller~random_level.
+
+  ENDMETHOD.
+
+  METHOD lif_controller~validate.
+
+  ENDMETHOD.
+
+ENDCLASS.
+
+CLASS controller DEFINITION FINAL
+                 INHERITING FROM abstract_controller.
+
+  PUBLIC SECTION.
+
+    METHODS:
+      lif_controller~delete_level REDEFINITION,
+      lif_controller~get_current_level REDEFINITION,
+      lif_controller~get_match_html REDEFINITION,
+      lif_controller~get_non_match_html REDEFINITION,
+      lif_controller~get_top_html REDEFINITION,
+      lif_controller~pick_level REDEFINITION,
+      lif_controller~random_level REDEFINITION,
+      lif_controller~validate REDEFINITION.
+
+
+    ALIASES: get_match_html FOR lif_controller~get_match_html,
+             get_non_match_html FOR lif_controller~get_non_match_html,
+             get_current_level FOR lif_controller~get_current_level,
+             random_level FOR lif_controller~random_level,
+             pick_level FOR lif_controller~pick_level,
+             add_level FOR lif_controller~add_level,
+             get_top_html FOR lif_controller~get_top_html,
+             validate FOR lif_controller~validate,
+             delete_level FOR lif_controller~delete_level.
+
+    METHODS:
+      constructor
         RAISING
-          cx_error,
-
-      pick_level,
-
-      add_level,
-
-      get_top_html
-        RETURNING VALUE(rt_html) TYPE w3htmltab,
-
-      validate
-        IMPORTING
-          i_regex TYPE csequence
-        RAISING
-          cx_error,
-
-      delete_level.
+          cx_error.
 
   PRIVATE SECTION.
 
     DATA:
       mo_validator          TYPE REF TO validator,
-      mo_level              TYPE REF TO level,
       mt_result_matches     TYPE validator=>tty_result,
       mt_result_non_matches TYPE validator=>tty_result.
 
@@ -554,20 +787,24 @@ CLASS controller IMPLEMENTATION.
 
   METHOD constructor.
 
-    mo_level = NEW level( ).
+    super->constructor( ).
+
+    IF lines( mo_level->mt_levels ) = 0.
+      RAISE EXCEPTION TYPE cx_no_levels.
+    ENDIF.
 
     _initialize( ).
 
   ENDMETHOD.
 
-  METHOD get_match_html.
+  METHOD lif_controller~get_match_html.
 
     rt_html = _get_html( it_result = mt_result_matches
                          i_match   = abap_true ).
 
   ENDMETHOD.
 
-  METHOD get_non_match_html.
+  METHOD lif_controller~get_non_match_html.
 
     rt_html = _get_html( it_result = mt_result_non_matches
                          i_match   = abap_false ).
@@ -652,13 +889,13 @@ CLASS controller IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD get_current_level.
+  METHOD lif_controller~get_current_level.
 
     r_current_level = mo_level->get_current_level( ).
 
   ENDMETHOD.
 
-  METHOD random_level.
+  METHOD lif_controller~random_level.
 
     mo_level->random_level( ).
 
@@ -666,7 +903,7 @@ CLASS controller IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD pick_level.
+  METHOD lif_controller~pick_level.
 
     DATA: new_level_id TYPE i,
           level_count  TYPE i.
@@ -705,45 +942,7 @@ CLASS controller IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD add_level.
-
-    DATA: matches     TYPE string,
-          non_matches TYPE string,
-          description TYPE string.
-
-    cl_demo_input=>new(
-                )->add_field( EXPORTING
-                                text  = 'Description'
-                              CHANGING
-                                field = description
-                )->add_field( EXPORTING
-                                text  = 'Matches (separated by whitespaces)'
-                              CHANGING
-                                field = matches
-                )->add_field( EXPORTING
-                                text = 'Non-Matches (separated by whitespaces)'
-                              CHANGING
-                                field = non_matches
-                )->request( ) ##NO_TEXT.
-
-    TRY.
-
-        DATA(new_level_id) = mo_level->add_level( i_description = description
-                                                i_matches     = matches
-                                                i_non_matches = non_matches ).
-
-      CATCH cx_error INTO DATA(error).
-
-        MESSAGE error TYPE 'S' DISPLAY LIKE 'E'.
-        RETURN.
-
-    ENDTRY.
-
-    MESSAGE |Level { new_level_id } created| TYPE 'S'.
-
-  ENDMETHOD.
-
-  METHOD get_top_html.
+  METHOD lif_controller~get_top_html.
 
     DATA(html) = `<html><head><style type="text/css">`
               && `body {`
@@ -769,7 +968,7 @@ CLASS controller IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD validate.
+  METHOD lif_controller~validate.
 
     mt_result_matches = _validate( i_regex   = i_regex
                                    it_tokens = mo_level->get_matches( ) ).
@@ -800,7 +999,7 @@ CLASS controller IMPLEMENTATION.
 
   ENDMETHOD.
 
-  METHOD delete_level.
+  METHOD lif_controller~delete_level.
 
     DATA: level_to_delete TYPE i.
 
@@ -833,15 +1032,20 @@ CLASS view DEFINITION FINAL CREATE PRIVATE.
 
   PUBLIC SECTION.
 
-    CLASS-METHODS get
-      RETURNING
-        VALUE(r_instance) TYPE REF TO view.
+    CLASS-METHODS:
+      get
+        RETURNING
+          VALUE(r_instance) TYPE REF TO view
+        RAISING
+          cx_error.
 
     INTERFACES: if_amc_message_receiver_text.
 
     METHODS:
 
-      constructor,
+      constructor
+        RAISING
+          cx_error,
 
       pbo,
 
@@ -855,7 +1059,7 @@ CLASS view DEFINITION FINAL CREATE PRIVATE.
 
     DATA:
 
-      mo_controller TYPE REF TO controller,
+      mo_controller TYPE REF TO lif_controller,
 
       BEGIN OF _custom_container,
         top   TYPE REF TO cl_gui_custom_container,
@@ -933,7 +1137,8 @@ CLASS view IMPLEMENTATION.
 
       CATCH cx_error INTO DATA(error).
 
-        MESSAGE error TYPE 'I'.
+        mo_controller = NEW null_controller( ).
+        MESSAGE error TYPE 'S' DISPLAY LIKE 'E'.
 
     ENDTRY.
 
@@ -966,7 +1171,7 @@ CLASS view IMPLEMENTATION.
   METHOD get.
 
     r_instance = mo_instance = COND #( WHEN mo_instance IS BOUND THEN mo_instance
-                                     ELSE NEW view( ) ).
+                                       ELSE NEW view( ) ).
 
   ENDMETHOD.
 
