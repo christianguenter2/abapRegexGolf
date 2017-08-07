@@ -232,9 +232,9 @@
       <TEXT_TYPE>S</TEXT_TYPE>
       <TEXT_NAME>ICON_OTHER_OBJECT</TEXT_NAME>
       <ICON_ID>@2Q@</ICON_ID>
-      <FUN_TEXT>Change Level</FUN_TEXT>
-      <ICON_TEXT>Change Level (F6)</ICON_TEXT>
-      <INFO_TEXT>Change Level (F6)</INFO_TEXT>
+      <FUN_TEXT>Switch Level</FUN_TEXT>
+      <ICON_TEXT>Switch Level (F6)</ICON_TEXT>
+      <INFO_TEXT>Switch Level (F6)</INFO_TEXT>
      </RSMPE_FUNT>
      <RSMPE_FUNT>
       <CODE>&amp;RAND</CODE>
