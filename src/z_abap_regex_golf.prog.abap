@@ -299,7 +299,7 @@ CLASS level DEFINITION CREATE PUBLIC.
   PUBLIC SECTION.
 
     TYPES: BEGIN OF ty_level,
-             id          TYPE i,
+             id          TYPE string,
              description TYPE string,
              matches     TYPE stringtab,
              non_matches TYPE stringtab,
@@ -492,7 +492,7 @@ CLASS level IMPLEMENTATION.
       i_matches     AT space INTO TABLE DATA(lt_matches),
       i_non_matches AT space INTO TABLE DATA(lt_non_matches).
 
-    INSERT VALUE ty_level( id          = lines( mt_levels ) + 1
+    INSERT VALUE ty_level( id          = cl_system_uuid=>create_uuid_c32_static( )
                            description = i_description
                            matches     = lt_matches
                            non_matches = lt_non_matches )
