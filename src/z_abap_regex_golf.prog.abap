@@ -345,13 +345,13 @@ CLASS level DEFINITION CREATE PUBLIC.
           i_matches             TYPE csequence
           i_non_matches         TYPE csequence
         RETURNING
-          VALUE(r_new_level_id) TYPE i
+          VALUE(r_new_level_id) TYPE Level=>ty_level_id
         RAISING
           cx_error,
 
       delete_level
         IMPORTING
-          i_level_id TYPE i
+          i_level_index TYPE i
         RAISING
           cx_error.
 
@@ -540,9 +540,9 @@ CLASS level IMPLEMENTATION.
 
   METHOD delete_level.
 
-    CHECK i_level_id IS NOT INITIAL.
+    CHECK i_level_index IS NOT INITIAL.
 
-    DELETE mt_levels INDEX i_level_id.
+    DELETE mt_levels INDEX i_level_index.
 
     IF sy-subrc <> 0.
 
