@@ -3,16 +3,6 @@
  <asx:values>
   <LEVELS>
    <item>
-    <ID>1</ID>
-    <DESCRIPTION>Test</DESCRIPTION>
-    <MATCHES>
-     <item>ABAP</item>
-    </MATCHES>
-    <NON_MATCHES>
-     <item>Java</item>
-    </NON_MATCHES>
-   </item>
-   <item>
     <ID>2</ID>
     <DESCRIPTION>Test</DESCRIPTION>
     <MATCHES>
