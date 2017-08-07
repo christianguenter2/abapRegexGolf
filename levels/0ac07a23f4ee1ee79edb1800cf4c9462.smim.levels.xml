@@ -102,6 +102,21 @@
      <item>unnickeled</item>
     </NON_MATCHES>
    </item>
+   <item>
+    <ID>0AC07A23F4EE1EE79EF3915D87227942</ID>
+    <DESCRIPTION>It never Ends</DESCRIPTION>
+    <MATCHES>
+     <item>fu</item>
+     <item>tofu</item>
+     <item>snafu</item>
+    </MATCHES>
+    <NON_MATCHES>
+     <item>futz</item>
+     <item>fusillade</item>
+     <item>functional</item>
+     <item>discombobulated</item>
+    </NON_MATCHES>
+   </item>
   </LEVELS>
  </asx:values>
 </asx:abap>
