@@ -3,7 +3,7 @@
  <asx:values>
   <LEVELS>
    <item>
-    <ID>2</ID>
+    <ID>0AC07A23F4EE1EE79EF36562CB84D91A</ID>
     <DESCRIPTION>Test</DESCRIPTION>
     <MATCHES>
      <item>afoot</item>
@@ -53,7 +53,7 @@
     </NON_MATCHES>
    </item>
    <item>
-    <ID>3</ID>
+    <ID>0AC07A23F4EE1EE79EF364ECAE1B5918</ID>
     <DESCRIPTION>Anchors</DESCRIPTION>
     <MATCHES>
      <item>Mick</item>
