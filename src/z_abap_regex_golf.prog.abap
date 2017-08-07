@@ -298,8 +298,9 @@ CLASS level DEFINITION CREATE PUBLIC.
 
   PUBLIC SECTION.
 
-    TYPES: BEGIN OF ty_level,
-             id          TYPE string,
+    TYPES: ty_level_id TYPE string,
+           BEGIN OF ty_level,
+             id          TYPE ty_level_id,
              description TYPE string,
              matches     TYPE stringtab,
              non_matches TYPE stringtab,
@@ -313,7 +314,7 @@ CLASS level DEFINITION CREATE PUBLIC.
 
       constructor
         IMPORTING
-          i_level TYPE i OPTIONAL
+          i_level TYPE ty_level_id OPTIONAL
         RAISING
           cx_error,
 
@@ -325,18 +326,18 @@ CLASS level DEFINITION CREATE PUBLIC.
 
       get_current_level
         RETURNING
-          VALUE(r_current_level) TYPE i,
+          VALUE(r_current_level) TYPE ty_level_id,
 
       random_level,
 
       set_level
         IMPORTING
-          i_new_level_id TYPE i
+          i_new_level_id TYPE ty_level_id
         RAISING
           cx_error,
 
       get_level_count
-        RETURNING VALUE(r_count) TYPE i,
+        RETURNING VALUE(r_count) TYPE ty_level_id,
 
       add_level
         IMPORTING
@@ -366,7 +367,7 @@ CLASS level DEFINITION CREATE PUBLIC.
 
       _get_random_level_id
         RETURNING
-          VALUE(r_random_level_id) TYPE i,
+          VALUE(r_random_level_id) TYPE level=>ty_level_id,
 
       _load_levels
         RETURNING
@@ -405,9 +406,10 @@ CLASS level IMPLEMENTATION.
 
     DO.
 
-      r_random_level_id = random->get_next( ).
+      DATA(random_int) = random->get_next( ).
+      DATA(new_level) = VALUE #( mt_levels[ random_int ] OPTIONAL ).
 
-      IF r_random_level_id <> m_current_level-id
+      IF new_level-id <> m_current_level-id
          OR lines( mt_levels ) <= 1.
 
         EXIT.
@@ -415,6 +417,8 @@ CLASS level IMPLEMENTATION.
       ENDIF.
 
     ENDDO.
+
+    r_random_level_id = new_level-id.
 
   ENDMETHOD.
 
@@ -438,7 +442,7 @@ CLASS level IMPLEMENTATION.
 
   METHOD random_level.
 
-    m_current_level = mt_levels[ _get_random_level_id( ) ].
+    m_current_level = mt_levels[ id = _get_random_level_id( ) ].
 
   ENDMETHOD.
 
@@ -446,13 +450,13 @@ CLASS level IMPLEMENTATION.
 
     CHECK i_new_level_id IS NOT INITIAL.
 
-    IF NOT line_exists( mt_levels[ i_new_level_id ] ).
+    IF NOT line_exists( mt_levels[ id = i_new_level_id ] ).
 
       RAISE EXCEPTION TYPE cx_invalid_level_id.
 
     ENDIF.
 
-    m_current_level = mt_levels[ i_new_level_id ].
+    m_current_level = mt_levels[ id = i_new_level_id ].
 
   ENDMETHOD.
 
@@ -562,7 +566,7 @@ INTERFACE lif_controller.
 
     get_current_level
       RETURNING
-        VALUE(r_current_level) TYPE i,
+        VALUE(r_current_level) TYPE level=>ty_level_id,
 
     random_level
       RAISING
@@ -905,7 +909,7 @@ CLASS controller IMPLEMENTATION.
 
   METHOD lif_controller~pick_level.
 
-    DATA: new_level_id TYPE i,
+    DATA: new_level_id TYPE level=>ty_level_id,
           level_count  TYPE i.
 
     LOOP AT mo_level->mt_levels ASSIGNING FIELD-SYMBOL(<level>).
