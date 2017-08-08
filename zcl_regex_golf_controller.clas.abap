@@ -106,20 +106,9 @@ CLASS zcl_regex_golf_controller IMPLEMENTATION.
       CHANGING
         field       = level_to_delete ).
 
-    TRY.
-
-        mo_level->delete_level( level_to_delete ).
-
-      CATCH zcx_regex_golf_error INTO DATA(error).
-
-        MESSAGE error TYPE 'S' DISPLAY LIKE 'E'.
-        RETURN.
-
-    ENDTRY.
+    mo_level->delete_level( level_to_delete ).
 
     mo_level->random_level( ).
-
-    MESSAGE |Level { level_to_delete } deleted| TYPE 'S'.
 
   ENDMETHOD.
 
@@ -198,19 +187,11 @@ CLASS zcl_regex_golf_controller IMPLEMENTATION.
 
     ENDIF.
 
-    TRY.
+    mo_level->set_level( new_level_id ).
 
-        mo_level->set_level( new_level_id ).
+    CLEAR mr_regex_input->*.
 
-        CLEAR mr_regex_input->*.
-
-        _initialize( ).
-
-      CATCH zcx_regex_golf_error INTO DATA(error).
-
-        MESSAGE error TYPE 'S' DISPLAY LIKE 'E'.
-
-    ENDTRY.
+    _initialize( ).
 
   ENDMETHOD.
 
