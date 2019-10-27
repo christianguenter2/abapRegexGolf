@@ -10,7 +10,6 @@
    <FUNCTIONS>
     <item>
      <FUNCNAME>Z_SHLP_EXIT_ABAP_REGEX_GOLF</FUNCNAME>
-     <INCLUDE>LZ_ABAP_REGEX_GOLFU01</INCLUDE>
      <SHORT_TEXT>Beispiel für ein Suchhilfe-Exit eine Suchhilfe</SHORT_TEXT>
      <CHANGING>
       <RSCHA>
