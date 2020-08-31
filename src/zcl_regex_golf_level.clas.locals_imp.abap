@@ -31,8 +31,6 @@ CLASS xml IMPLEMENTATION.
     DATA: li_ostream        TYPE REF TO if_ixml_ostream,
           li_renderer       TYPE REF TO if_ixml_renderer,
           li_istream        TYPE REF TO if_ixml_istream,
-          li_element        TYPE REF TO if_ixml_element,
-          li_version        TYPE REF TO if_ixml_node,
           li_parser         TYPE REF TO if_ixml_parser,
           li_stream_factory TYPE REF TO if_ixml_stream_factory.
 
