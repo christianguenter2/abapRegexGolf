@@ -9,15 +9,15 @@ CLASS zcl_regex_golf_controller DEFINITION
     TYPES: ty_regex_string TYPE c LENGTH 60.
 
     ALIASES:
-      add_level 				 FOR zif_regex_golf_controller~add_level,
-      delete_level			 FOR zif_regex_golf_controller~delete_level,
+      add_level          FOR zif_regex_golf_controller~add_level,
+      delete_level       FOR zif_regex_golf_controller~delete_level,
       get_current_level  FOR zif_regex_golf_controller~get_current_level,
-      get_match_html		 FOR zif_regex_golf_controller~get_match_html,
+      get_match_html     FOR zif_regex_golf_controller~get_match_html,
       get_non_match_html FOR zif_regex_golf_controller~get_non_match_html,
-      get_top_html			 FOR zif_regex_golf_controller~get_top_html,
-      pick_level				 FOR zif_regex_golf_controller~pick_level,
-      random_level			 FOR zif_regex_golf_controller~random_level,
-      validate					 FOR zif_regex_golf_controller~validate.
+      get_top_html       FOR zif_regex_golf_controller~get_top_html,
+      pick_level         FOR zif_regex_golf_controller~pick_level,
+      random_level       FOR zif_regex_golf_controller~random_level,
+      validate           FOR zif_regex_golf_controller~validate.
 
     METHODS:
       constructor
@@ -26,14 +26,14 @@ CLASS zcl_regex_golf_controller DEFINITION
         RAISING
           zcx_regex_golf_error,
 
-      zif_regex_golf_controller~delete_level			 REDEFINITION,
+      zif_regex_golf_controller~delete_level       REDEFINITION,
       zif_regex_golf_controller~get_current_level  REDEFINITION,
-      zif_regex_golf_controller~get_match_html		 REDEFINITION,
+      zif_regex_golf_controller~get_match_html     REDEFINITION,
       zif_regex_golf_controller~get_non_match_html REDEFINITION,
-      zif_regex_golf_controller~get_top_html			 REDEFINITION,
-      zif_regex_golf_controller~pick_level				 REDEFINITION,
-      zif_regex_golf_controller~random_level			 REDEFINITION,
-      zif_regex_golf_controller~validate					 REDEFINITION.
+      zif_regex_golf_controller~get_top_html       REDEFINITION,
+      zif_regex_golf_controller~pick_level         REDEFINITION,
+      zif_regex_golf_controller~random_level       REDEFINITION,
+      zif_regex_golf_controller~validate           REDEFINITION.
 
   PRIVATE SECTION.
 
@@ -164,8 +164,10 @@ CLASS zcl_regex_golf_controller IMPLEMENTATION.
 
   METHOD zif_regex_golf_controller~pick_level.
 
-    DATA: new_level_id TYPE zcl_regex_golf_level=>ty_level_id,
-          level_count  TYPE i.
+    DATA:
+      new_level_id TYPE zcl_regex_golf_level=>ty_level_id,
+      new_level    TYPE i,
+      level_count  TYPE i.
 
     LOOP AT mo_level->mt_levels ASSIGNING FIELD-SYMBOL(<level>).
 
@@ -179,19 +181,24 @@ CLASS zcl_regex_golf_controller IMPLEMENTATION.
       EXPORTING
         text        = |Choose Level 1 - { mo_level->get_level_count( ) }|
       CHANGING
-        field       = new_level_id ).
+        field       = new_level ).
 
-    IF new_level_id IS INITIAL.
-
+    IF new_level IS INITIAL.
       RETURN.
-
     ENDIF.
 
-    mo_level->set_level( new_level_id ).
+    TRY.
+        new_level_id = VALUE #( mo_level->mt_levels[ new_level ]-id OPTIONAL ).
 
-    CLEAR mr_regex_input->*.
+        mo_level->set_level( new_level_id ).
 
-    _initialize( ).
+        CLEAR mr_regex_input->*.
+
+        _initialize( ).
+
+      CATCH zcx_regex_golf_error INTO DATA(error).
+        MESSAGE error TYPE 'S' DISPLAY LIKE 'E'.
+    ENDTRY.
 
   ENDMETHOD.
 

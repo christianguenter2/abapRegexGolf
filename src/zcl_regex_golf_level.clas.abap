@@ -206,9 +206,6 @@ CLASS zcl_regex_golf_level IMPLEMENTATION.
 
   METHOD set_level.
 
-
-    CHECK i_new_level_id IS NOT INITIAL.
-
     IF NOT line_exists( mt_levels[ id = i_new_level_id ] ).
 
       RAISE EXCEPTION TYPE zcx_regex_golf_inv_level_id.
@@ -216,7 +213,6 @@ CLASS zcl_regex_golf_level IMPLEMENTATION.
     ENDIF.
 
     m_current_level = mt_levels[ id = i_new_level_id ].
-
 
   ENDMETHOD.
 
