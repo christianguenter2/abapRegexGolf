@@ -150,6 +150,7 @@ CLASS zcl_regex_golf_controller IMPLEMENTATION.
               && `   margin: auto;`
               && `}`
               && `</style></head><body>`
+              && |<div class="">{ mo_level->get_description( ) }</div>|
               && COND #( WHEN _level_solved( ) = abap_true THEN `<div class="success">Level solved!</div>` )
               && `</body><html>` ##NO_TEXT.
 

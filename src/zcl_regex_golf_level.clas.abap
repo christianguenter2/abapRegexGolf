@@ -63,7 +63,11 @@ CLASS zcl_regex_golf_level DEFINITION
         IMPORTING
           !i_level_index TYPE i
         RAISING
-          zcx_regex_golf_error.
+          zcx_regex_golf_error,
+
+      get_description
+        RETURNING
+          VALUE(rv_description) TYPE string.
 
   PRIVATE SECTION.
 
@@ -296,4 +300,10 @@ CLASS zcl_regex_golf_level IMPLEMENTATION.
 
 
   ENDMETHOD.
+
+
+  METHOD get_description.
+    rv_description = m_current_level-description.
+  ENDMETHOD.
+
 ENDCLASS.

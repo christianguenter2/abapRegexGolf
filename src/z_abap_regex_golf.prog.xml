@@ -20,7 +20,7 @@
       <TYPE>N</TYPE>
       <NEXTSCREEN>0100</NEXTSCREEN>
       <LINES>040</LINES>
-      <COLUMNS>120</COLUMNS>
+      <COLUMNS>121</COLUMNS>
      </HEADER>
      <CONTAINERS>
       <RPY_DYCATT>
@@ -31,45 +31,31 @@
        <TYPE>CUST_CTRL</TYPE>
        <NAME>CC_TOP</NAME>
        <ELEMENT_OF>SCREEN</ELEMENT_OF>
-       <LINE>002</LINE>
+       <LINE>001</LINE>
        <COLUMN>001</COLUMN>
        <LENGTH>093</LENGTH>
-       <HEIGHT>002</HEIGHT>
+       <HEIGHT>003</HEIGHT>
       </RPY_DYCATT>
       <RPY_DYCATT>
        <TYPE>CUST_CTRL</TYPE>
        <NAME>CC_LEFT</NAME>
        <ELEMENT_OF>SCREEN</ELEMENT_OF>
-       <LINE>007</LINE>
+       <LINE>008</LINE>
        <COLUMN>001</COLUMN>
        <LENGTH>045</LENGTH>
-       <HEIGHT>034</HEIGHT>
+       <HEIGHT>033</HEIGHT>
       </RPY_DYCATT>
       <RPY_DYCATT>
        <TYPE>CUST_CTRL</TYPE>
        <NAME>CC_RIGHT</NAME>
        <ELEMENT_OF>SCREEN</ELEMENT_OF>
-       <LINE>007</LINE>
+       <LINE>008</LINE>
        <COLUMN>049</COLUMN>
        <LENGTH>045</LENGTH>
-       <HEIGHT>034</HEIGHT>
+       <HEIGHT>033</HEIGHT>
       </RPY_DYCATT>
      </CONTAINERS>
      <FIELDS>
-      <RPY_DYFATC>
-       <CONT_TYPE>SCREEN</CONT_TYPE>
-       <CONT_NAME>SCREEN</CONT_NAME>
-       <TYPE>TEXT</TYPE>
-       <NAME>TEXT_GOLF</NAME>
-       <TEXT>Find_a_regex_with_as_few_characters_as_possible_which...</TEXT>
-       <LINE>001</LINE>
-       <COLUMN>001</COLUMN>
-       <LENGTH>056</LENGTH>
-       <VISLENGTH>056</VISLENGTH>
-       <HEIGHT>001</HEIGHT>
-       <FORMAT>CHAR</FORMAT>
-       <REQU_ENTRY>N</REQU_ENTRY>
-      </RPY_DYFATC>
       <RPY_DYFATC>
        <CONT_TYPE>SCREEN</CONT_TYPE>
        <CONT_NAME>SCREEN</CONT_NAME>
@@ -91,9 +77,23 @@
        <CONT_TYPE>SCREEN</CONT_TYPE>
        <CONT_NAME>SCREEN</CONT_NAME>
        <TYPE>TEXT</TYPE>
+       <NAME>TEXT_GOLF</NAME>
+       <TEXT>Find_a_regex_with_as_few_characters_as_possible_which...</TEXT>
+       <LINE>005</LINE>
+       <COLUMN>001</COLUMN>
+       <LENGTH>056</LENGTH>
+       <VISLENGTH>056</VISLENGTH>
+       <HEIGHT>001</HEIGHT>
+       <FORMAT>CHAR</FORMAT>
+       <REQU_ENTRY>N</REQU_ENTRY>
+      </RPY_DYFATC>
+      <RPY_DYFATC>
+       <CONT_TYPE>SCREEN</CONT_TYPE>
+       <CONT_NAME>SCREEN</CONT_NAME>
+       <TYPE>TEXT</TYPE>
        <NAME>TEXT_MATCH</NAME>
        <TEXT>match_all_of_these...</TEXT>
-       <LINE>006</LINE>
+       <LINE>007</LINE>
        <COLUMN>001</COLUMN>
        <LENGTH>021</LENGTH>
        <VISLENGTH>021</VISLENGTH>
@@ -107,7 +107,7 @@
        <TYPE>TEXT</TYPE>
        <NAME>TEXT_NON_MATCH</NAME>
        <TEXT>and_none_of_these...</TEXT>
-       <LINE>006</LINE>
+       <LINE>007</LINE>
        <COLUMN>049</COLUMN>
        <LENGTH>020</LENGTH>
        <VISLENGTH>020</VISLENGTH>
